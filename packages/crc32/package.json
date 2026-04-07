@@ -1,6 +1,6 @@
 {
   "name": "@culvert/crc32",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "",
   "type": "module",
   "main": "dist/index",
@@ -11,9 +11,17 @@
       "import": "./dist/index.js"
     }
   },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
   "keywords": [],
-  "author": "khali",
-  "license": "ISC",
+  "author": "Khalid",
+  "license": "MIT",
   "devDependencies": {
     "typescript": "^5.7.0"
   }

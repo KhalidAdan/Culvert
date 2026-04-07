@@ -1,6 +1,6 @@
 {
   "name": "@culvert/zip",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "",
   "type": "module",
   "main": "dist/index",
@@ -12,9 +12,13 @@
     }
   },
   "keywords": [],
-  "author": "khali",
-  "license": "ISC",
+  "author": "Khalid",
+  "license": "MIT",
   "devDependencies": {
     "typescript": "^5.7.0"
+  },
+  "peerDependencies": {
+    "@culvert/stream": "^0.1.0",
+    "@culvert/crc32": "^0.1.0"
   }
 }
