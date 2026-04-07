@@ -2,18 +2,14 @@
   "name": "culvert",
   "version": "1.0.0",
   "description": "",
+  "type": "module",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+"scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
-  "keywords": [],
-  "author": "khali",
-  "license": "ISC",
-  "type": "commonjs",
-  "workspaces": [
-    "packages/*"
-  ],
   "devDependencies": {
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^2.0.0"
   }
 }

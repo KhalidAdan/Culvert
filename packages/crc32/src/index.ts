@@ -12,7 +12,7 @@ export class CRC32 {
 
   update(data: Uint8Array): void {
     for (let i = 0; i < data.length; i++) {
-      this.crc = TABLE[(this.crc ^ data[i]) & 0xff]! ^ (this.crc >>> 8);
+      this.crc = TABLE[(this.crc ^ data[i]!) & 0xff]! ^ (this.crc >>> 8);
     }
   }
 
