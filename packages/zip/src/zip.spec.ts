@@ -685,7 +685,7 @@ describe("stream composition", () => {
 
     await pipe(
       zip,
-      tap((chunk) => {
+      tap((chunk: any) => {
         totalBytes += chunk.length;
       }),
       async (source) => {

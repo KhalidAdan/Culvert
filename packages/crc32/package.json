@@ -2,6 +2,14 @@
   "name": "@culvert/crc32",
   "version": "0.1.0",
   "description": "IEEE 802.3 CRC-32. Streaming-native. Zero dependencies.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KhalidAdan/culvert.git"
+  },
+  "bugs": {
+    "url": "https://github.com/KhalidAdan/culvert/issues"
+  },
+  "homepage": "#",
   "type": "module",
   "main": "dist/index",
   "types": "dist/index.d.ts",
@@ -9,7 +17,8 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
@@ -17,12 +26,28 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --build",
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "keywords": [],
-  "author": "Khalid",
+  "keywords": [
+    "crc",
+    "crc32",
+    "crc-32",
+    "ieee-802.3",
+    "checksum",
+    "streaming",
+    "zip",
+    "gzip"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "author": "Khalid Adan",
   "license": "MIT",
   "devDependencies": {
     "typescript": "^5.7.0"

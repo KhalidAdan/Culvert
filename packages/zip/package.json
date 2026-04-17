@@ -2,6 +2,14 @@
   "name": "@culvert/zip",
   "version": "0.1.0",
   "description": "Streaming ZIP writer and reader. Constant memory. Predictable backpressure. Works in Node and the browser.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KhalidAdan/culvert.git"
+  },
+  "bugs": {
+    "url": "https://github.com/KhalidAdan/culvert/issues"
+  },
+  "homepage": "#",
   "type": "module",
   "main": "dist/index",
   "types": "dist/index.d.ts",
@@ -9,24 +17,40 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
     "LICENSE",
     "README.md"
   ],
-  "keywords": [],
   "scripts": {
-    "build": "tsc"
+    "build": "tsc --build"
   },
-  "author": "Khalid",
-  "license": "MIT",
   "devDependencies": {
     "typescript": "^5.7.0"
   },
-  "peerDependencies": {
+  "dependencies": {
     "@culvert/stream": "^0.1.0",
     "@culvert/crc32": "^0.1.0"
-  }
+  },
+  "keywords": [
+    "zip",
+    "archive",
+    "streaming",
+    "zip64",
+    "compression",
+    "deflate",
+    "cbz"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "author": "Khalid Adan",
+  "license": "MIT"
 }

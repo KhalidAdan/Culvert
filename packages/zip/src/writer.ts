@@ -116,7 +116,7 @@ export function createZip(
 
           await pipe(
             fileSource,
-            tap((chunk) => {
+            tap((chunk: any) => {
               crc.update(chunk);
               uncompressedSize += chunk.length;
             }),

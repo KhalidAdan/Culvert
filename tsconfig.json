@@ -1,0 +1,8 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/crc32" },
+    { "path": "packages/stream" },
+    { "path": "packages/zip" }
+  ]
+}
