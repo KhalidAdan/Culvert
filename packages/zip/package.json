@@ -1,6 +1,6 @@
 {
   "name": "@culvert/zip",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Streaming ZIP writer and reader. Constant memory. Predictable backpressure. Works in Node and the browser.",
   "repository": {
     "type": "git",
@@ -32,8 +32,8 @@
     "typescript": "^5.7.0"
   },
   "dependencies": {
-    "@culvert/stream": "^0.1.0",
-    "@culvert/crc32": "^0.1.0"
+    "@culvert/stream": "^0.1.1",
+    "@culvert/crc32": "^0.1.1"
   },
   "keywords": [
     "zip",
