@@ -131,6 +131,20 @@ export function batch<T>(size: number, timeoutMs?: number): Transform<T, T[]> {
 
     const iterator = source[Symbol.asyncIterator]();
 
+    type Next =
+      | { kind: "next"; result: IteratorResult<T> }
+      | { kind: "error"; error: unknown };
+
+    // Hoisted outside the loop so a flush doesn't abandon an in-flight pull.
+    // Only replaced after the "next" branch consumes it.
+    let nextPromise: Promise<Next> | undefined;
+
+    const pullNext = () =>
+      iterator.next().then(
+        (result): Next => ({ kind: "next", result }),
+        (err): Next => ({ kind: "error", error: err }),
+      );
+
     try {
       while (true) {
         // Race: next item vs. timer flush
@@ -138,21 +152,25 @@ export function batch<T>(size: number, timeoutMs?: number): Transform<T, T[]> {
           flushResolve = () => resolve("flush");
         });
 
-        const nextPromise = iterator.next().then(
-          (result) => ({ kind: "next" as const, result }),
-          (err) => ({ kind: "error" as const, error: err }),
-        );
+        // Reuse the in-flight promise if the timer won last iteration
+        if (!nextPromise) {
+          nextPromise = pullNext();
+        }
 
         const winner = await Promise.race([nextPromise, flushPromise]);
 
         if (winner === "flush") {
-          // Timer fired — flush whatever we have
+          // Timer fired — flush whatever we have.
+          // nextPromise stays live — we'll await it next iteration.
           if (buf.length > 0) {
             yield buf;
             buf = [];
           }
           continue;
         }
+
+        // next branch consumed the promise — clear it so we pull fresh next time
+        nextPromise = undefined;
 
         if (winner.kind === "error") {
           throw winner.error;
@@ -182,7 +200,6 @@ export function batch<T>(size: number, timeoutMs?: number): Transform<T, T[]> {
     }
   };
 }
-
 // ---------------------------------------------------------------------------
 // merge() — interleave multiple sources into a single stream.
 //

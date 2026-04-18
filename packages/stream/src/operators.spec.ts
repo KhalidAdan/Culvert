@@ -14,7 +14,9 @@ import type { Sink, Source } from "../src/types.js";
 
 // Simple sink that consumes everything and returns void — used for side-effect-only tests
 const consume: Sink<unknown> = async (source) => {
-  for await (const _ of source) { /* drain */ }
+  for await (const _ of source) {
+    /* drain */
+  }
 };
 
 const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -352,5 +354,64 @@ describe("composition", () => {
     expect(transformedSize).toEqual(12);
     expect(result.length).toEqual(3);
     expect(result[0]).toStrictEqual(new Uint8Array([1, 1, 2, 2, 3, 3]));
+  });
+});
+
+/**
+ * A source that yields items with a delay between each.
+ * Lets the batch timeout fire between items.
+ */
+function slowSource<T>(items: T[], delayMs: number): Source<T> {
+  return (async function* () {
+    for (const item of items) {
+      await delay(delayMs);
+      yield item;
+    }
+  })();
+}
+
+describe("batch(size, timeoutMs) — timeout element dropping", () => {
+  it("does not drop elements when the timeout fires between slow items", async () => {
+    // Source yields 1–5 with 60ms between each.
+    // Batch size 10 (large — won't hit count threshold).
+    // Timeout 25ms — fires well before the next item arrives.
+    //
+    // Before the fix, every timeout-flush abandoned the in-flight
+    // iterator.next() promise and called .next() again on the next
+    // loop iteration, dropping the element the old promise resolved to.
+    // Result was [1, 3, 5] instead of [1, 2, 3, 4, 5].
+    const result = await pipe(
+      slowSource([1, 2, 3, 4, 5], 60),
+      batch(10, 25),
+      collect(),
+    );
+
+    const allItems = result.flat().sort((a, b) => a - b);
+    expect(allItems).toStrictEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("timeout flushes partial batch without losing subsequent items", async () => {
+    // 3 items, 80ms apart. Batch size 2, timeout 30ms.
+    // Each item arrives alone and gets flushed by the timer.
+    // All 3 must appear in output.
+    const result = await pipe(
+      slowSource([1, 2, 3], 80),
+      batch(2, 30),
+      collect(),
+    );
+
+    const allItems = result.flat().sort((a, b) => a - b);
+    expect(allItems).toStrictEqual([1, 2, 3]);
+  });
+
+  it("count threshold still works with timeout enabled", async () => {
+    // Fast source, large timeout — count threshold should fire, not the timer.
+    const result = await pipe(
+      slowSource([1, 2, 3, 4, 5], 1),
+      batch(2, 5000),
+      collect(),
+    );
+
+    expect(result).toStrictEqual([[1, 2], [3, 4], [5]]);
   });
 });
