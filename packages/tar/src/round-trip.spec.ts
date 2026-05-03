@@ -162,6 +162,56 @@ describe("round-trip: subsecond mtime", () => {
   });
 });
 
+describe("round-trip: PAX uid/gid overflow", () => {
+  it("uid > 2M triggers PAX, reader recovers full uid", async () => {
+    const bigUid = 5_000_000;
+    const bytes = await pipe(
+      createTar(async (a) => {
+        await a.addFile({
+          name: "x",
+          source: of(new Uint8Array(0)),
+          size: 0,
+          lastModified: EPOCH,
+          uid: bigUid,
+        });
+      }),
+      collectBytes(),
+    );
+    let recoveredUid: number | null = null;
+    for await (const e of readTarEntries(from([bytes]))) {
+      if (e.kind === "file") {
+        recoveredUid = e.uid;
+        await pipe(e.source, collectBytes());
+      }
+    }
+    expect(recoveredUid).toBe(bigUid);
+  });
+
+  it("gid > 2M triggers PAX, reader recovers full gid", async () => {
+    const bigGid = 5_000_000;
+    const bytes = await pipe(
+      createTar(async (a) => {
+        await a.addFile({
+          name: "x",
+          source: of(new Uint8Array(0)),
+          size: 0,
+          lastModified: EPOCH,
+          gid: bigGid,
+        });
+      }),
+      collectBytes(),
+    );
+    let recoveredGid: number | null = null;
+    for await (const e of readTarEntries(from([bytes]))) {
+      if (e.kind === "file") {
+        recoveredGid = e.gid;
+        await pipe(e.source, collectBytes());
+      }
+    }
+    expect(recoveredGid).toBe(bigGid);
+  });
+});
+
 describe("auto-skip: unconsumed file source", () => {
   it("reader advances past skipped file data", async () => {
     const bytes = await archiveBytes(async (a) => {

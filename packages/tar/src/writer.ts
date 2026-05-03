@@ -6,15 +6,19 @@ import {
   DEFAULT_HARDLINK_MODE,
   DEFAULT_SYMLINK_MODE,
   END_OF_ARCHIVE_SIZE,
+  PAX_KEY_GID,
   PAX_KEY_LINKPATH,
   PAX_KEY_MTIME,
   PAX_KEY_PATH,
   PAX_KEY_SIZE,
+  PAX_KEY_UID,
   TYPEFLAG_DIRECTORY,
   TYPEFLAG_FILE,
   TYPEFLAG_HARDLINK,
   TYPEFLAG_SYMLINK,
+  USTAR_MAX_GID,
   USTAR_MAX_SIZE,
+  USTAR_MAX_UID,
 } from "./constants.js";
 import { TarAbortError, TarEntryError } from "./errors.js";
 import { applyPathPolicy } from "./path-policy.js";
@@ -126,6 +130,18 @@ function buildHeaderFields(input: FieldsInput): FieldsOutput {
     ustarSize = 0; // sentinel-style fallback
   }
 
+  // --- uid / gid ---
+  let ustarUid = input.uid;
+  if (input.uid > USTAR_MAX_UID) {
+    records.set(PAX_KEY_UID, input.uid.toString());
+    ustarUid = 0;
+  }
+  let ustarGid = input.gid;
+  if (input.gid > USTAR_MAX_GID) {
+    records.set(PAX_KEY_GID, input.gid.toString());
+    ustarGid = 0;
+  }
+
   // --- mtime ---
   const mtimeMs = input.mtime.getTime();
   const mtimeSecondsFloat = mtimeMs / 1000;
@@ -139,8 +155,8 @@ function buildHeaderFields(input: FieldsInput): FieldsOutput {
     name: ustarName,
     prefix: ustarPrefix,
     mode: input.mode,
-    uid: input.uid,
-    gid: input.gid,
+    uid: ustarUid,
+    gid: ustarGid,
     size: ustarSize,
     mtimeSeconds: mtimeSecondsInt,
     typeflag: input.typeflag,
