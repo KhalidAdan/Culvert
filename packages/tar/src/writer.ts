@@ -241,11 +241,20 @@ export function createTar(
 
     const archive: TarArchive = {
       async addFile(opts: AddFileOptions): Promise<void> {
-        if (typeof opts.size !== "number" || opts.size < 0) {
+        if (typeof opts.size !== "number" || opts.size < 0 || !Number.isInteger(opts.size)) {
           throw new TarEntryError(`addFile: invalid size ${opts.size}`);
         }
         if (!(opts.lastModified instanceof Date)) {
           throw new TarEntryError("addFile: lastModified is required");
+        }
+        if (opts.mode !== undefined && !Number.isInteger(opts.mode)) {
+          throw new TarEntryError(`addFile: invalid mode ${opts.mode}`);
+        }
+        if (opts.uid !== undefined && !Number.isInteger(opts.uid)) {
+          throw new TarEntryError(`addFile: invalid uid ${opts.uid}`);
+        }
+        if (opts.gid !== undefined && !Number.isInteger(opts.gid)) {
+          throw new TarEntryError(`addFile: invalid gid ${opts.gid}`);
         }
         const name = checkPath(opts.name);
         await emitEntry(
@@ -266,6 +275,15 @@ export function createTar(
       async addDirectory(opts: AddDirectoryOptions): Promise<void> {
         if (!(opts.lastModified instanceof Date)) {
           throw new TarEntryError("addDirectory: lastModified is required");
+        }
+        if (opts.mode !== undefined && !Number.isInteger(opts.mode)) {
+          throw new TarEntryError(`addDirectory: invalid mode ${opts.mode}`);
+        }
+        if (opts.uid !== undefined && !Number.isInteger(opts.uid)) {
+          throw new TarEntryError(`addDirectory: invalid uid ${opts.uid}`);
+        }
+        if (opts.gid !== undefined && !Number.isInteger(opts.gid)) {
+          throw new TarEntryError(`addDirectory: invalid gid ${opts.gid}`);
         }
         const name = checkPath(normalizeDirName(opts.name));
         await emitEntry({
