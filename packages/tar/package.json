@@ -1,0 +1,55 @@
+{
+  "name": "@culvert/tar",
+  "version": "0.1.0",
+  "description": "Streaming tar reader and writer. Constant memory. ustar + PAX. Strict-by-default path validation.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KhalidAdan/culvert.git"
+  },
+  "bugs": {
+    "url": "https://github.com/KhalidAdan/culvert/issues"
+  },
+  "homepage": "#",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc --build",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  },
+  "dependencies": {
+    "@culvert/stream": "workspace:*"
+  },
+  "keywords": [
+    "tar",
+    "archive",
+    "streaming",
+    "ustar",
+    "pax"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "author": "Khalid Adan",
+  "license": "MIT"
+}
