@@ -7,6 +7,7 @@ import {
   PAX_KEY_PATH,
   PAX_KEY_SIZE,
   PAX_KEY_UID,
+  TYPEFLAG_CONTIGUOUS,
   TYPEFLAG_DIRECTORY,
   TYPEFLAG_FILE,
   TYPEFLAG_FILE_OLD,
@@ -221,7 +222,8 @@ export function readTarEntries(
                 // Function form: skip this entry.
                 if (
                   merged.typeflag === TYPEFLAG_FILE ||
-                  merged.typeflag === TYPEFLAG_FILE_OLD
+                  merged.typeflag === TYPEFLAG_FILE_OLD ||
+                  merged.typeflag === TYPEFLAG_CONTIGUOUS
                 ) {
                   await reader.skip(merged.size + padBytes(merged.size));
                 }
@@ -232,7 +234,11 @@ export function readTarEntries(
               // Emit the entry.
               const flag = merged.typeflag;
 
-              if (flag === TYPEFLAG_FILE || flag === TYPEFLAG_FILE_OLD) {
+              if (
+                flag === TYPEFLAG_FILE ||
+                flag === TYPEFLAG_FILE_OLD ||
+                flag === TYPEFLAG_CONTIGUOUS
+              ) {
                 // File: build a Source<Uint8Array> for its data.
                 const fileSource = makeFileSource(
                   reader,

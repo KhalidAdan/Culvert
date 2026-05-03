@@ -3,6 +3,8 @@ import { collectBytes, from, of, pipe } from "@culvert/stream";
 import { createTar, EPOCH } from "./writer.js";
 import { readTarEntries } from "./reader.js";
 import type { TarEntry, TarFileEntry } from "./types.js";
+import { encodeUstarHeader } from "./ustar.js";
+import { BLOCK_SIZE, END_OF_ARCHIVE_SIZE, TYPEFLAG_CONTIGUOUS } from "./constants.js";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -96,6 +98,40 @@ describe("round-trip: multiple entries of mixed kinds", () => {
       { kind: "symlink", name: "src/latest" },
       { kind: "hardlink", name: "src/copy" },
     ]);
+  });
+});
+
+describe("round-trip: contiguous file (typeflag '7')", () => {
+  it("reader surfaces contiguous as kind 'file' per POSIX", async () => {
+    const data = bytesOf("contiguous-data");
+    const header = encodeUstarHeader({
+      name: "contiguous.bin",
+      mode: 0o644,
+      uid: 0,
+      gid: 0,
+      size: data.length,
+      mtimeSeconds: 0,
+      typeflag: TYPEFLAG_CONTIGUOUS,
+    });
+    const pad = new Uint8Array(BLOCK_SIZE - (data.length % BLOCK_SIZE));
+    const archive = new Uint8Array(
+      header.length + data.length + pad.length + END_OF_ARCHIVE_SIZE,
+    );
+    archive.set(header, 0);
+    archive.set(data, header.length);
+    archive.set(pad, header.length + data.length);
+    // end-of-archive zeros are already zero
+
+    const entries: TarEntry[] = [];
+    for await (const e of readTarEntries(from([archive]))) {
+      entries.push(e);
+      if (e.kind === "file") {
+        await pipe(e.source, collectBytes());
+      }
+    }
+    expect(entries).toHaveLength(1);
+    expect(entries[0]!.kind).toBe("file");
+    expect(entries[0]!.name).toBe("contiguous.bin");
   });
 });
 
