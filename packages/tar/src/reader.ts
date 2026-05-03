@@ -174,6 +174,19 @@ export function readTarEntries(
                       `computed=${parsed.computedChecksum}`,
                   );
                 }
+
+                // Magic verification — catches crafted blocks that pass
+                // checksum but aren't actually tar headers.
+                if (
+                  parsed.magic !== "ustar" &&
+                  parsed.magic !== "ustar " &&
+                  parsed.magic !== "ustar  "
+                ) {
+                  throw new TarCorruptionError(
+                    `Invalid ustar magic: "${parsed.magic}" ` +
+                      `(expected "ustar" or GNU "ustar ")`,
+                  );
+                }
               }
 
               // PAX-typeflag entries are consumed internally.
