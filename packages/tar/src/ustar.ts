@@ -270,15 +270,15 @@ export function joinPath(name: string, prefix: string): string {
 // ---------------------------------------------------------------------------
 
 export interface UstarHeaderFields {
-  name: string;            // up to NAME_LENGTH bytes UTF-8
-  prefix?: string;         // up to PREFIX_LENGTH bytes UTF-8
+  name: string | Uint8Array;            // up to NAME_LENGTH bytes UTF-8
+  prefix?: string | Uint8Array;         // up to PREFIX_LENGTH bytes UTF-8
   mode: number;
   uid: number;
   gid: number;
   size: number;            // 0 for directories, symlinks, hardlinks
   mtimeSeconds: number;    // integer seconds since epoch
   typeflag: string;        // single character
-  linkname?: string;       // for symlinks/hardlinks
+  linkname?: string | Uint8Array;       // for symlinks/hardlinks
   uname?: string;
   gname?: string;
 }
@@ -286,9 +286,17 @@ export interface UstarHeaderFields {
 export function encodeUstarHeader(fields: UstarHeaderFields): Uint8Array {
   const buf = new Uint8Array(BLOCK_SIZE);
 
-  writeString(buf, NAME_OFFSET, NAME_LENGTH, fields.name);
+  if (fields.name instanceof Uint8Array) {
+    writeBytes(buf, NAME_OFFSET, NAME_LENGTH, fields.name);
+  } else {
+    writeString(buf, NAME_OFFSET, NAME_LENGTH, fields.name);
+  }
   if (fields.prefix) {
-    writeString(buf, PREFIX_OFFSET, PREFIX_LENGTH, fields.prefix);
+    if (fields.prefix instanceof Uint8Array) {
+      writeBytes(buf, PREFIX_OFFSET, PREFIX_LENGTH, fields.prefix);
+    } else {
+      writeString(buf, PREFIX_OFFSET, PREFIX_LENGTH, fields.prefix);
+    }
   }
   writeOctal(buf, MODE_OFFSET, MODE_LENGTH, fields.mode);
   writeOctal(buf, UID_OFFSET, UID_LENGTH, fields.uid);
@@ -306,7 +314,11 @@ export function encodeUstarHeader(fields: UstarHeaderFields): Uint8Array {
   buf[TYPEFLAG_OFFSET] = fields.typeflag.charCodeAt(0);
 
   if (fields.linkname) {
-    writeString(buf, LINKNAME_OFFSET, LINKNAME_LENGTH, fields.linkname);
+    if (fields.linkname instanceof Uint8Array) {
+      writeBytes(buf, LINKNAME_OFFSET, LINKNAME_LENGTH, fields.linkname);
+    } else {
+      writeString(buf, LINKNAME_OFFSET, LINKNAME_LENGTH, fields.linkname);
+    }
   }
 
   writeBytes(buf, MAGIC_OFFSET, MAGIC_LENGTH, encoder.encode(MAGIC_USTAR));

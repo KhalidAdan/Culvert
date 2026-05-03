@@ -92,15 +92,16 @@ function buildHeaderFields(input: FieldsInput): FieldsOutput {
 
   // --- Path ---
   const split = trySplitPath(input.path);
-  let ustarName: string;
+  let ustarName: string | Uint8Array;
   let ustarPrefix: string;
   if (split === null) {
     // Path doesn't fit in name + prefix at all. Use first 100 bytes
     // as the fallback ustar name and emit a PAX path record.
+    // We keep the raw truncated bytes (no TextDecoder round-trip) to
+    // avoid re-encoding U+FFFD replacement chars that inflate the size.
     const encoder = new TextEncoder();
     const bytes = encoder.encode(input.path);
-    const truncated = bytes.subarray(0, 100);
-    ustarName = new TextDecoder().decode(truncated);
+    ustarName = bytes.subarray(0, 100);
     ustarPrefix = "";
     records.set(PAX_KEY_PATH, input.path);
   } else {
@@ -109,12 +110,13 @@ function buildHeaderFields(input: FieldsInput): FieldsOutput {
   }
 
   // --- Linkname (symlinks/hardlinks) ---
-  let ustarLinkname = input.linkname ?? "";
+  let ustarLinkname: string | Uint8Array = input.linkname ?? "";
   if (input.linkname && new TextEncoder().encode(input.linkname).length > 100) {
     records.set(PAX_KEY_LINKPATH, input.linkname);
-    // Truncate the ustar field to a fallback.
+    // Truncate the ustar field to a fallback — keep raw bytes to
+    // avoid re-encoding issues with mid-character truncation.
     const bytes = new TextEncoder().encode(input.linkname);
-    ustarLinkname = new TextDecoder().decode(bytes.subarray(0, 100));
+    ustarLinkname = bytes.subarray(0, 100);
   }
 
   // --- Size ---
