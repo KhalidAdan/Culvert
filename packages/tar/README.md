@@ -156,6 +156,11 @@ In strict mode, a hostile path halts iteration with
 `TarCorruptionError`. The function form lets you skip individual
 entries (return `Error`) without aborting the whole archive.
 
+Note: a PAX `'x'` extended header immediately preceding a skipped
+entry is consumed and discarded with that entry. It does not carry
+forward to the next entry — this is spec-correct behavior, but worth
+knowing if you're inspecting archives entry-by-entry.
+
 ### Checksum policy
 
 ```ts

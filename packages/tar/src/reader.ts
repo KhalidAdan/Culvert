@@ -204,6 +204,9 @@ export function readTarEntries(
               }
 
               const merged = mergeFields(parsed, pax);
+              // PAX 'x' records apply to the next regular entry only.
+              // If that entry is rejected or skipped by the path policy,
+              // the pending records are spent — they do not carry forward.
               pax.consumePending();
 
               // Apply path policy on the merged name.
