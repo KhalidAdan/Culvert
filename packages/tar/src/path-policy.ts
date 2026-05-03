@@ -73,5 +73,12 @@ export function applyPathPolicy(name: string, policy: PathPolicy | undefined): s
     return name;
   }
   // Function form.
-  return policy(name);
+  const result = policy(name);
+  if (result === "") {
+    console.warn(
+      `[culvert/tar] pathPolicy function returned an empty string for ` +
+        `name=${JSON.stringify(name)}. An empty entry name is usually a bug.`,
+    );
+  }
+  return result;
 }
