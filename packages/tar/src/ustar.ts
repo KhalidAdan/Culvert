@@ -370,6 +370,28 @@ export function trySplitPath(path: string): { name: string; prefix: string } | n
 }
 
 /**
+ * Truncate a string so that its UTF-8 byte length is at most `maxBytes`,
+ * cutting at a character boundary (never mid-codepoint). Used to produce
+ * fallback ustar field values when the full value is being carried in a
+ * PAX record.
+ *
+ * Returns a string whose UTF-8 encoding is guaranteed to fit. If even
+ * the first character exceeds maxBytes, returns the empty string.
+ */
+export function truncateUtf8(value: string, maxBytes: number): string {
+  // Walk codepoints (not UTF-16 code units) so surrogate pairs stay intact.
+  let acc = "";
+  let accBytes = 0;
+  for (const ch of value) {
+    const chBytes = encoder.encode(ch).length;
+    if (accBytes + chBytes > maxBytes) break;
+    acc += ch;
+    accBytes += chBytes;
+  }
+  return acc;
+}
+
+/**
  * Returns true if all fields can be expressed in ustar without PAX records.
  */
 export function fitsInUstar(fields: {

@@ -1,10 +1,10 @@
-import { describe, it, expect } from "vitest";
 import { collectBytes, from, of, pipe } from "@culvert/stream";
-import { createTar, EPOCH } from "./writer.js";
-import { readTarEntries } from "./reader.js";
+import { describe, expect, it } from "vitest";
+import { MAGIC_OFFSET } from "./constants.js";
 import { TarCorruptionError } from "./errors.js";
+import { readTarEntries } from "./reader.js";
 import { computeChecksum, writeChecksum } from "./ustar.js";
-import { CHKSUM_OFFSET, MAGIC_OFFSET } from "./constants.js";
+import { createTar, EPOCH } from "./writer.js";
 
 async function buildOne(): Promise<Uint8Array> {
   return await pipe(
@@ -83,18 +83,14 @@ describe("magic validation", () => {
     const bytes = await buildOne();
     const header = bytes.subarray(0, 512);
 
-    // GNU tar writes "ustar " (one trailing space) in the 6-byte magic field.
-    header.set(
-      [0x75, 0x73, 0x74, 0x61, 0x72, 0x20],
-      MAGIC_OFFSET,
-    ); // "ustar "
+    header.set([0x75, 0x73, 0x74, 0x61, 0x72, 0x20], MAGIC_OFFSET); // "ustar "
     fixChecksum(header);
 
-    const out: string[] = [];
-    for await (const e of readTarEntries(from([bytes]))) {
-      out.push(e.name);
-      if (e.kind === "file") await pipe(e.source, collectBytes());
-    }
-    expect(out).toEqual(["x"]);
+    const promise = (async () => {
+      for await (const _ of readTarEntries(from([bytes]))) {
+        // drain
+      }
+    })();
+    await expect(promise).rejects.toThrow(TarCorruptionError);
   });
 });

@@ -93,6 +93,11 @@ export function parsePaxRecords(data: Uint8Array): Map<string, string> {
         `PAX record at byte ${pos} has no '=' separator`,
       );
     }
+    if (eqAt === 0) {
+      throw new TarCorruptionError(
+        `PAX record at byte ${pos} has empty key`,
+      );
+    }
 
     let key: string;
     let value: string;

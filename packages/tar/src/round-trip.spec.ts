@@ -312,3 +312,167 @@ describe("size mismatch", () => {
     await expect(promise).rejects.toThrow(/size/);
   });
 });
+
+describe("UTF-8 truncation safety (regression)", () => {
+  it("path with multibyte char straddling byte 100 round-trips correctly", async () => {
+    // 99 ASCII bytes + a 3-byte CJK char = byte 100 splits the codepoint.
+    // Without the fix, the writer's truncation produces a string whose
+    // re-encoding exceeds 100 bytes, causing writeString to throw.
+    const longName = "a".repeat(99) + "日" + "/file.txt";
+    const bytes = await pipe(
+      createTar(async (a) => {
+        await a.addFile({
+          name: longName,
+          source: of(new Uint8Array(0)),
+          size: 0,
+          lastModified: EPOCH,
+        });
+      }),
+      collectBytes(),
+    );
+
+    let recovered: string | null = null;
+    for await (const e of readTarEntries(from([bytes]))) {
+      if (e.kind === "file") {
+        recovered = e.name;
+        await pipe(e.source, collectBytes());
+      }
+    }
+    expect(recovered).toBe(longName);
+  });
+
+  it("symlink target with multibyte char straddling byte 100 round-trips", async () => {
+    const longTarget = "b".repeat(99) + "日" + "/elsewhere";
+    const bytes = await pipe(
+      createTar(async (a) => {
+        await a.addSymlink({
+          name: "link",
+          target: longTarget,
+          lastModified: EPOCH,
+        });
+      }),
+      collectBytes(),
+    );
+
+    let recovered: string | null = null;
+    for await (const e of readTarEntries(from([bytes]))) {
+      if (e.kind === "symlink") recovered = e.target;
+    }
+    expect(recovered).toBe(longTarget);
+  });
+});
+
+describe("PAX overflow for uid/gid (regression)", () => {
+  it("uid > USTAR_MAX_UID round-trips via PAX", async () => {
+    const bigUid = 5_000_000;
+    const bytes = await pipe(
+      createTar(async (a) => {
+        await a.addFile({
+          name: "x",
+          source: of(new Uint8Array(0)),
+          size: 0,
+          lastModified: EPOCH,
+          uid: bigUid,
+        });
+      }),
+      collectBytes(),
+    );
+
+    let recoveredUid: number | null = null;
+    for await (const e of readTarEntries(from([bytes]))) {
+      if (e.kind === "file") {
+        recoveredUid = e.uid;
+        await pipe(e.source, collectBytes());
+      }
+    }
+    expect(recoveredUid).toBe(bigUid);
+  });
+
+  it("gid > USTAR_MAX_GID round-trips via PAX", async () => {
+    const bigGid = 5_000_000;
+    const bytes = await pipe(
+      createTar(async (a) => {
+        await a.addFile({
+          name: "x",
+          source: of(new Uint8Array(0)),
+          size: 0,
+          lastModified: EPOCH,
+          gid: bigGid,
+        });
+      }),
+      collectBytes(),
+    );
+
+    let recoveredGid: number | null = null;
+    for await (const e of readTarEntries(from([bytes]))) {
+      if (e.kind === "file") {
+        recoveredGid = e.gid;
+        await pipe(e.source, collectBytes());
+      }
+    }
+    expect(recoveredGid).toBe(bigGid);
+  });
+});
+
+describe("integer validation (regression)", () => {
+  it("addFile rejects fractional size", async () => {
+    const promise = pipe(
+      createTar(async (a) => {
+        await a.addFile({
+          name: "x",
+          source: of(new Uint8Array(0)),
+          size: 1.5,
+          lastModified: EPOCH,
+        });
+      }),
+      collectBytes(),
+    );
+    await expect(promise).rejects.toThrow(/integer/);
+  });
+
+  it("addFile rejects fractional uid", async () => {
+    const promise = pipe(
+      createTar(async (a) => {
+        await a.addFile({
+          name: "x",
+          source: of(new Uint8Array(0)),
+          size: 0,
+          lastModified: EPOCH,
+          uid: 1000.5,
+        });
+      }),
+      collectBytes(),
+    );
+    await expect(promise).rejects.toThrow(/integer/);
+  });
+
+  it("addFile rejects negative mode", async () => {
+    const promise = pipe(
+      createTar(async (a) => {
+        await a.addFile({
+          name: "x",
+          source: of(new Uint8Array(0)),
+          size: 0,
+          lastModified: EPOCH,
+          mode: -1,
+        });
+      }),
+      collectBytes(),
+    );
+    await expect(promise).rejects.toThrow(/integer/);
+  });
+
+  it("addDirectory rejects fractional gid", async () => {
+    const promise = pipe(
+      createTar(async (a) => {
+        await a.addDirectory({
+          name: "d/",
+          lastModified: EPOCH,
+          gid: 100.5,
+        });
+      }),
+      collectBytes(),
+    );
+    await expect(promise).rejects.toThrow(/integer/);
+  });
+});

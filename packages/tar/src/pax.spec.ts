@@ -126,3 +126,11 @@ describe("buildPaxExtendedHeader", () => {
     expect(String.fromCharCode(buf[156]!)).toBe("x");
   });
 });
+
+describe("PAX empty-key rejection (regression)", () => {
+  it("rejects record with empty key", () => {
+    // "4 =\n" — length 4, key is empty
+    const buf = new TextEncoder().encode("4 =\n");
+    expect(() => parsePaxRecords(buf)).toThrow(TarCorruptionError);
+  });
+});

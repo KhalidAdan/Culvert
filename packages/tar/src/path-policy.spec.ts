@@ -64,3 +64,16 @@ describe("applyPathPolicy", () => {
     expect(applyPathPolicy("foo", policy)).toBe("foo");
   });
 });
+
+describe("function-form empty-string rejection (regression)", () => {
+  it("returns Error when function returns empty string", () => {
+    const policy = (_name: string) => "";
+    const result = applyPathPolicy("anything", policy);
+    expect(result).toBeInstanceOf(Error);
+  });
+
+  it("function returning a real string still works", () => {
+    const policy = (name: string) => name.toLowerCase();
+    expect(applyPathPolicy("FOO", policy)).toBe("foo");
+  });
+});

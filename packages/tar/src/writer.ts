@@ -34,6 +34,7 @@ import type {
 import {
   encodeUstarHeader,
   fitsInUstar,
+  truncateUtf8,
   trySplitPath,
   type UstarHeaderFields,
 } from "./ustar.js";
@@ -96,16 +97,13 @@ function buildHeaderFields(input: FieldsInput): FieldsOutput {
 
   // --- Path ---
   const split = trySplitPath(input.path);
-  let ustarName: string | Uint8Array;
+  let ustarName: string;
   let ustarPrefix: string;
   if (split === null) {
-    // Path doesn't fit in name + prefix at all. Use first 100 bytes
-    // as the fallback ustar name and emit a PAX path record.
-    // We keep the raw truncated bytes (no TextDecoder round-trip) to
-    // avoid re-encoding U+FFFD replacement chars that inflate the size.
-    const encoder = new TextEncoder();
-    const bytes = encoder.encode(input.path);
-    ustarName = bytes.subarray(0, 100);
+    // Path doesn't fit in name + prefix at all. Use a UTF-8-safe
+    // truncation as the fallback ustar name and emit a PAX path record
+    // carrying the real value.
+    ustarName = truncateUtf8(input.path, 100);
     ustarPrefix = "";
     records.set(PAX_KEY_PATH, input.path);
   } else {
@@ -114,13 +112,11 @@ function buildHeaderFields(input: FieldsInput): FieldsOutput {
   }
 
   // --- Linkname (symlinks/hardlinks) ---
-  let ustarLinkname: string | Uint8Array = input.linkname ?? "";
+  let ustarLinkname = input.linkname ?? "";
   if (input.linkname && new TextEncoder().encode(input.linkname).length > 100) {
     records.set(PAX_KEY_LINKPATH, input.linkname);
-    // Truncate the ustar field to a fallback — keep raw bytes to
-    // avoid re-encoding issues with mid-character truncation.
-    const bytes = new TextEncoder().encode(input.linkname);
-    ustarLinkname = bytes.subarray(0, 100);
+    // UTF-8-safe truncation for the fallback ustar field.
+    ustarLinkname = truncateUtf8(input.linkname, 100);
   }
 
   // --- Size ---
@@ -241,20 +237,28 @@ export function createTar(
 
     const archive: TarArchive = {
       async addFile(opts: AddFileOptions): Promise<void> {
-        if (typeof opts.size !== "number" || opts.size < 0 || !Number.isInteger(opts.size)) {
-          throw new TarEntryError(`addFile: invalid size ${opts.size}`);
+        if (!Number.isInteger(opts.size) || opts.size < 0) {
+          throw new TarEntryError(
+            `addFile: size must be a non-negative integer, got ${opts.size}`,
+          );
         }
         if (!(opts.lastModified instanceof Date)) {
           throw new TarEntryError("addFile: lastModified is required");
         }
-        if (opts.mode !== undefined && !Number.isInteger(opts.mode)) {
-          throw new TarEntryError(`addFile: invalid mode ${opts.mode}`);
+        if (opts.mode !== undefined && (!Number.isInteger(opts.mode) || opts.mode < 0)) {
+          throw new TarEntryError(
+            `addFile: mode must be a non-negative integer, got ${opts.mode}`,
+          );
         }
-        if (opts.uid !== undefined && !Number.isInteger(opts.uid)) {
-          throw new TarEntryError(`addFile: invalid uid ${opts.uid}`);
+        if (opts.uid !== undefined && (!Number.isInteger(opts.uid) || opts.uid < 0)) {
+          throw new TarEntryError(
+            `addFile: uid must be a non-negative integer, got ${opts.uid}`,
+          );
         }
-        if (opts.gid !== undefined && !Number.isInteger(opts.gid)) {
-          throw new TarEntryError(`addFile: invalid gid ${opts.gid}`);
+        if (opts.gid !== undefined && (!Number.isInteger(opts.gid) || opts.gid < 0)) {
+          throw new TarEntryError(
+            `addFile: gid must be a non-negative integer, got ${opts.gid}`,
+          );
         }
         const name = checkPath(opts.name);
         await emitEntry(
@@ -276,14 +280,20 @@ export function createTar(
         if (!(opts.lastModified instanceof Date)) {
           throw new TarEntryError("addDirectory: lastModified is required");
         }
-        if (opts.mode !== undefined && !Number.isInteger(opts.mode)) {
-          throw new TarEntryError(`addDirectory: invalid mode ${opts.mode}`);
+        if (opts.mode !== undefined && (!Number.isInteger(opts.mode) || opts.mode < 0)) {
+          throw new TarEntryError(
+            `addDirectory: mode must be a non-negative integer, got ${opts.mode}`,
+          );
         }
-        if (opts.uid !== undefined && !Number.isInteger(opts.uid)) {
-          throw new TarEntryError(`addDirectory: invalid uid ${opts.uid}`);
+        if (opts.uid !== undefined && (!Number.isInteger(opts.uid) || opts.uid < 0)) {
+          throw new TarEntryError(
+            `addDirectory: uid must be a non-negative integer, got ${opts.uid}`,
+          );
         }
-        if (opts.gid !== undefined && !Number.isInteger(opts.gid)) {
-          throw new TarEntryError(`addDirectory: invalid gid ${opts.gid}`);
+        if (opts.gid !== undefined && (!Number.isInteger(opts.gid) || opts.gid < 0)) {
+          throw new TarEntryError(
+            `addDirectory: gid must be a non-negative integer, got ${opts.gid}`,
+          );
         }
         const name = checkPath(normalizeDirName(opts.name));
         await emitEntry({

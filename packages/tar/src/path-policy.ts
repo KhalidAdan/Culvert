@@ -72,12 +72,14 @@ export function applyPathPolicy(name: string, policy: PathPolicy | undefined): s
   if (policy === "permissive") {
     return name;
   }
-  // Function form.
+  // Function form. An empty-string return is treated as a rejection
+  // for consistency with strict mode (which also rejects empty names).
+  // If the caller wants to skip an entry without producing an Error,
+  // they can return an Error themselves with a descriptive message.
   const result = policy(name);
   if (result === "") {
-    console.warn(
-      `[culvert/tar] pathPolicy function returned an empty string for ` +
-        `name=${JSON.stringify(name)}. An empty entry name is usually a bug.`,
+    return new Error(
+      `pathPolicy function returned an empty string for name=${JSON.stringify(name)}`,
     );
   }
   return result;

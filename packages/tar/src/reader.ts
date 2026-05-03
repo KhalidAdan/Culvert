@@ -1,4 +1,5 @@
-import { abortable, channel, type Source } from "@culvert/stream";
+import { abortable, type Source } from "@culvert/stream";
+import { byteReader, isAllZeros, type ByteReader } from "./byte-reader.js";
 import {
   BLOCK_SIZE,
   PAX_KEY_GID,
@@ -17,7 +18,6 @@ import {
   TYPEFLAG_SYMLINK,
 } from "./constants.js";
 import { TarAbortError, TarCorruptionError } from "./errors.js";
-import { byteReader, isAllZeros, type ByteReader } from "./byte-reader.js";
 import { applyPathPolicy } from "./path-policy.js";
 import { PaxState, parsePaxRecords } from "./pax.js";
 import type {
@@ -61,7 +61,8 @@ function mergeFields(
 ): MergedFields {
   // Path: PAX 'path' overrides ustar name+prefix.
   const paxPath = pax.get(PAX_KEY_PATH);
-  const name = paxPath !== undefined ? paxPath : joinPath(parsed.name, parsed.prefix);
+  const name =
+    paxPath !== undefined ? paxPath : joinPath(parsed.name, parsed.prefix);
 
   // Linkname: PAX 'linkpath' overrides ustar linkname.
   const paxLinkpath = pax.get(PAX_KEY_LINKPATH);
@@ -71,7 +72,9 @@ function mergeFields(
   const paxSize = pax.get(PAX_KEY_SIZE);
   const size = paxSize !== undefined ? Number(paxSize) : parsed.size;
   if (!Number.isFinite(size) || size < 0) {
-    throw new TarCorruptionError(`Invalid size value: ${paxSize ?? parsed.size}`);
+    throw new TarCorruptionError(
+      `Invalid size value: ${paxSize ?? parsed.size}`,
+    );
   }
 
   // mtime: PAX 'mtime' (decimal seconds with optional fraction) overrides
@@ -178,14 +181,10 @@ export function readTarEntries(
 
                 // Magic verification — catches crafted blocks that pass
                 // checksum but aren't actually tar headers.
-                if (
-                  parsed.magic !== "ustar" &&
-                  parsed.magic !== "ustar " &&
-                  parsed.magic !== "ustar  "
-                ) {
+                if (parsed.magic !== "ustar" && parsed.magic !== "ustar  ") {
                   throw new TarCorruptionError(
-                    `Invalid ustar magic: "${parsed.magic}" ` +
-                      `(expected "ustar" or GNU "ustar ")`,
+                    `Invalid ustar magic: ${JSON.stringify(parsed.magic)} ` +
+                      `(expected "ustar" or GNU "ustar  ")`,
                   );
                 }
               }
