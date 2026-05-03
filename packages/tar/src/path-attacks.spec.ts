@@ -3,6 +3,9 @@ import { collectBytes, from, of, pipe } from "@culvert/stream";
 import { createTar, EPOCH } from "./writer.js";
 import { readTarEntries } from "./reader.js";
 import { TarCorruptionError, TarEntryError } from "./errors.js";
+import { END_OF_ARCHIVE_SIZE } from "./constants.js";
+import { buildPaxExtendedHeader } from "./pax.js";
+import { encodeUstarHeader } from "./ustar.js";
 
 async function buildHostile(name: string, opts?: { typeflag?: "file" | "symlink" | "hardlink"; target?: string }): Promise<Uint8Array> {
   return await pipe(
@@ -112,6 +115,38 @@ describe("PAX-merged-name attack", () => {
     const evilLong = "../../etc/passwd-and-extra-padding-to-force-pax-".repeat(3);
     const bytes = await buildHostile(evilLong);
     const iter = readTarEntries(from([bytes]))[Symbol.asyncIterator]();
+    await expect(iter.next()).rejects.toThrow(TarCorruptionError);
+  });
+
+  it("reader validates PAX-merged name even when ustar name is benign (byte-crafted)", async () => {
+    // Hand-craft an archive where the ustar name is "safe.txt" but a
+    // preceding PAX 'x' header overrides the path with a hostile value.
+    // The writer can't naturally produce this because it only emits PAX
+    // when the path doesn't fit ustar — a short benign path wouldn't
+    // trigger PAX. A real attacker crafts bytes directly.
+
+    const paxBlock = buildPaxExtendedHeader(
+      new Map([["path", "../../etc/passwd"]]),
+    );
+    const fileHeader = encodeUstarHeader({
+      name: "safe.txt",
+      mode: 0o644,
+      uid: 0,
+      gid: 0,
+      size: 0,
+      mtimeSeconds: 0,
+      typeflag: "0",
+    });
+    const eoa = new Uint8Array(END_OF_ARCHIVE_SIZE);
+
+    const archive = new Uint8Array(
+      paxBlock.length + fileHeader.length + eoa.length,
+    );
+    archive.set(paxBlock, 0);
+    archive.set(fileHeader, paxBlock.length);
+    archive.set(eoa, paxBlock.length + fileHeader.length);
+
+    const iter = readTarEntries(from([archive]))[Symbol.asyncIterator]();
     await expect(iter.next()).rejects.toThrow(TarCorruptionError);
   });
 });
