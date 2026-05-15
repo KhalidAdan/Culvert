@@ -33,8 +33,8 @@
     "typescript": "^5.7.0"
   },
   "dependencies": {
-    "@culvert/stream": "^0.1.1",
-    "@culvert/crc32": "^0.1.1"
+    "@culvert/stream": "workspace:*",
+    "@culvert/crc32": "workspace:*"
   },
   "keywords": [
     "zip",

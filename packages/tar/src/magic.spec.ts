@@ -93,4 +93,18 @@ describe("magic validation", () => {
     })();
     await expect(promise).rejects.toThrow(TarCorruptionError);
   });
+
+  it("strict rejects garbage magic", async () => {
+    const bytes = await buildOne();
+    const header = bytes.subarray(0, 512);
+    // Some random bytes that aren't any valid magic variant.
+    header.set([0x66, 0x6f, 0x6f, 0x62, 0x61, 0x72], MAGIC_OFFSET); // "foobar"
+    fixChecksum(header);
+    const promise = (async () => {
+      for await (const _ of readTarEntries(from([bytes]))) {
+        // drain
+      }
+    })();
+    await expect(promise).rejects.toThrow(TarCorruptionError);
+  });
 });
