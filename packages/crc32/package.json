@@ -27,6 +27,7 @@
   ],
   "scripts": {
     "build": "tsc --build",
+    "prepublishOnly": "npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
     "clean": "rm -rf dist tsconfig.tsbuildinfo"

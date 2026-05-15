@@ -1,6 +1,6 @@
 {
   "name": "@culvert/tar",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Streaming tar reader and writer. Constant memory. ustar + PAX. Strict-by-default path validation.",
   "repository": {
     "type": "git",
@@ -27,6 +27,7 @@
   ],
   "scripts": {
     "build": "tsc --build",
+    "prepublishOnly": "npm run build",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "test": "vitest run"
   },
@@ -34,7 +35,7 @@
     "typescript": "^5.7.0"
   },
   "dependencies": {
-    "@culvert/stream": "workspace:*"
+    "@culvert/stream": "*"
   },
   "keywords": [
     "tar",

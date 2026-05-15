@@ -1,0 +1,19 @@
+node_modules
+.DS_Store
+
+# build output
+build
+.cache
+.vite
+.react-router
+
+# logs
+*.log
+
+# editor
+.vscode
+.idea
+
+# env
+.env
+.env.local
