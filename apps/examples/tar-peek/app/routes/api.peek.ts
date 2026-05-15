@@ -28,6 +28,16 @@ import type { Route } from "./+types/api.peek";
 
 const SAMPLE_INTERVAL_MS = 100;
 
+async function* fetchGunzip(url: string, signal?: AbortSignal) {
+  const res = await fetch(url, { signal });
+  if (!res.ok || !res.body) {
+    throw new Error(`tarball fetch ${res.status} ${res.statusText}`);
+  }
+  yield* fromReadableStream(
+    res.body.pipeThrough(new DecompressionStream("gzip")),
+  );
+}
+
 export async function loader({ request }: Route.LoaderArgs) {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -87,30 +97,18 @@ export async function loader({ request }: Route.LoaderArgs) {
         );
         emit({ t: "start", package: packageName, version, tarballUrl });
 
-        // 2) Fetch the tarball. The body is a Web ReadableStream of
-        //    gzipped bytes. Pipe it through the platform-native gunzip
-        //    transformer — no zlib import, no node:stream, just bytes.
-        const tarballRes = await fetch(tarballUrl, { signal: request.signal });
-        if (!tarballRes.ok || !tarballRes.body) {
-          throw new Error(
-            `tarball fetch returned ${tarballRes.status} ${tarballRes.statusText}`,
-          );
-        }
-        const tarBytes = tarballRes.body.pipeThrough(
-          new DecompressionStream("gzip"),
-        );
-
-        // 3) Build the culvert pipeline. The entire stream — gunzip,
+        // 2) Build the culvert pipeline. The entire stream — gunzip,
         //    throughput tap, tar header parsing, and NDJSON emission —
         //    is one pipe with a sink that drives consumption. Back-
         //    pressure propagates all the way back to the fetch, so we
         //    never buffer more than a chunk in flight.
         await pipe(
-          fromReadableStream(tarBytes),
+          fetchGunzip(tarballUrl, request.signal),
           tap((chunk: Uint8Array) => {
             bytesIn += chunk.byteLength;
           }),
           (source) => readTarEntries(source, { pathPolicy: "strict" }),
+          // we emit on the bytes pull from here, and discard them
           async (entries) => {
             for await (const entry of entries) {
               if (request.signal.aborted) break;
