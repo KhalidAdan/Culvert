@@ -1,15 +1,15 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+import { TYPEFLAG_FILE } from "./constants.js";
+import { TarCorruptionError } from "./errors.js";
 import {
   computeChecksum,
   encodeUstarHeader,
   fitsInUstar,
-  parseUstarHeader,
   parseOctal,
+  parseUstarHeader,
   trySplitPath,
   writeOctal,
 } from "./ustar.js";
-import { TYPEFLAG_FILE } from "./constants.js";
-import { TarCorruptionError } from "./errors.js";
 
 describe("octal field codec", () => {
   it("round-trips zero", () => {
@@ -120,9 +120,9 @@ describe("path splitting", () => {
 
 describe("fitsInUstar", () => {
   it("true for ordinary inputs", () => {
-    expect(
-      fitsInUstar({ path: "x.txt", size: 100, uid: 0, gid: 0 }),
-    ).toBe(true);
+    expect(fitsInUstar({ path: "x.txt", size: 100, uid: 0, gid: 0 })).toBe(
+      true,
+    );
   });
 
   it("false for path that won't split", () => {
@@ -138,9 +138,9 @@ describe("fitsInUstar", () => {
   });
 
   it("false for uid > 2M", () => {
-    expect(
-      fitsInUstar({ path: "x", size: 0, uid: 0o10000000, gid: 0 }),
-    ).toBe(false);
+    expect(fitsInUstar({ path: "x", size: 0, uid: 0o10000000, gid: 0 })).toBe(
+      false,
+    );
   });
 
   it("false for long symlink target", () => {
