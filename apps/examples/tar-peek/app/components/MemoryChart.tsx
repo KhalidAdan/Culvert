@@ -1,168 +1,133 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import type { MemEvent } from "~/lib/events";
-
-interface Props {
-  samples: MemEvent[];
-  baselineHeap: number | null;
-  durationMs: number;
-}
 
 const MB = 1024 * 1024;
 
-/** Round up to a "nice" axis maximum. */
-function niceMax(value: number): number {
-  if (value <= 0) return 4 * MB;
-  const mag = Math.pow(10, Math.floor(Math.log10(value)));
-  for (const m of [1, 2, 5, 10]) {
-    const cand = m * mag;
-    if (cand >= value * 1.1) return cand;
-  }
-  return value * 1.5;
+interface Props {
+  samples: MemEvent[];
+  durationMs: number;
 }
 
-function formatBytes(n: number): string {
-  if (Math.abs(n) >= MB) return (n / MB).toFixed(1) + " MB";
-  if (Math.abs(n) >= 1024) return (n / 1024).toFixed(0) + " KB";
-  return n + " B";
-}
+export function MemoryChart({ samples, durationMs }: Props) {
+  // SSR guard — Recharts needs the DOM.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
-export function MemoryChart({ samples, baselineHeap, durationMs }: Props) {
-  const W = 800;
-  const H = 240;
-  const PAD = { top: 16, right: 16, bottom: 28, left: 56 };
+  // Measure container width so the chart fills available space.
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(800);
 
-  const points = useMemo(() => {
-    if (baselineHeap === null) return null;
-    return samples.map((s) => ({
-      ms: s.ms,
-      heapDelta: s.heapUsed - baselineHeap,
-      bytesIn: s.bytesIn,
-    }));
-  }, [samples, baselineHeap]);
+  useEffect(() => {
+    if (!wrapperRef.current) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setWidth(entry.contentRect.width);
+      }
+    });
+    ro.observe(wrapperRef.current);
+    return () => ro.disconnect();
+  }, [mounted]);
 
-  if (!points || points.length < 2) {
-    return <div className="chart-empty">waiting for samples…</div>;
-  }
-
-  const tMax = Math.max(durationMs, 1000);
-  const yMax = niceMax(
-    Math.max(
-      ...points.map((p) => Math.max(p.bytesIn, Math.max(0, p.heapDelta))),
-    ),
+  const chartData = useMemo(
+    () =>
+      samples.map((s) => ({
+        time: +(s.ms / 1000).toFixed(2),
+        heapUsed: +(s.heapUsed / MB).toFixed(2),
+        bytesIn: +(s.bytesIn / MB).toFixed(2),
+      })),
+    [samples],
   );
-  const yMin = Math.min(0, ...points.map((p) => p.heapDelta));
-  const yRange = yMax - yMin;
 
-  const x = (ms: number) =>
-    PAD.left + (ms / tMax) * (W - PAD.left - PAD.right);
-  const y = (v: number) =>
-    H - PAD.bottom - ((v - yMin) / yRange) * (H - PAD.top - PAD.bottom);
-
-  const buildPath = (sel: (p: { ms: number; heapDelta: number; bytesIn: number }) => number) =>
-    points
-      .map(
-        (p, i) =>
-          `${i === 0 ? "M" : "L"} ${x(p.ms).toFixed(1)} ${y(sel(p)).toFixed(1)}`,
-      )
-      .join(" ");
-
-  const bytesPath = buildPath((p) => p.bytesIn);
-  const heapPath = buildPath((p) => p.heapDelta);
-
-  const yTicks = [
-    yMin,
-    yMin + yRange / 4,
-    yMin + yRange / 2,
-    yMin + (3 * yRange) / 4,
-    yMax,
-  ].map((v) => ({ v, y: y(v) }));
-
-  const xTickCount = 5;
-  const xTicks = Array.from({ length: xTickCount + 1 }, (_, i) => {
-    const ms = (tMax * i) / xTickCount;
-    return { ms, x: x(ms) };
-  });
-
-  const lastPoint = points[points.length - 1];
+  if (!mounted || chartData.length < 2) {
+    return (
+      <div ref={wrapperRef} className="chart-empty">
+        waiting for samples…
+      </div>
+    );
+  }
 
   return (
-    <svg
-      className="chart-svg"
-      viewBox={`0 0 ${W} ${H}`}
-      preserveAspectRatio="none"
-    >
-      {/* Y gridlines (the v=0 line is rendered as the axis line) */}
-      {yTicks.map((t, i) => (
-        <line
-          key={`yg-${i}`}
-          className={t.v === 0 ? "chart-axis-line" : "chart-grid-line"}
-          x1={PAD.left}
-          x2={W - PAD.right}
-          y1={t.y}
-          y2={t.y}
+    <div ref={wrapperRef} style={{ width: "100%" }}>
+      <LineChart
+        width={width}
+        height={240}
+        data={chartData}
+        margin={{ top: 8, right: 16, bottom: 4, left: 8 }}
+      >
+        <CartesianGrid
+          vertical={false}
+          strokeDasharray="2 4"
+          stroke="var(--line)"
         />
-      ))}
-
-      {/* X gridlines */}
-      {xTicks.map((t, i) => (
-        <line
-          key={`xg-${i}`}
-          className="chart-grid-line"
-          x1={t.x}
-          x2={t.x}
-          y1={PAD.top}
-          y2={H - PAD.bottom}
+        <XAxis
+          dataKey="time"
+          type="number"
+          domain={[0, Math.max(durationMs / 1000, 1)]}
+          tickLine={false}
+          axisLine={false}
+          tickMargin={8}
+          tick={{ fill: "var(--ink-faint)", fontSize: 11 }}
+          tickFormatter={(v: number) => `${v.toFixed(1)}s`}
         />
-      ))}
-
-      {/* Y labels */}
-      {yTicks.map((t, i) => (
-        <text
-          key={`yl-${i}`}
-          className="chart-label"
-          x={PAD.left - 8}
-          y={t.y + 3}
-          textAnchor="end"
-        >
-          {formatBytes(t.v)}
-        </text>
-      ))}
-
-      {/* X labels */}
-      {xTicks.map((t, i) => (
-        <text
-          key={`xl-${i}`}
-          className="chart-label"
-          x={t.x}
-          y={H - PAD.bottom + 16}
-          textAnchor="middle"
-        >
-          {(t.ms / 1000).toFixed(1)}s
-        </text>
-      ))}
-
-      {/* Heap delta — the "boring" hero. Stays flat. */}
-      <path className="chart-line chart-line--heap" d={heapPath} />
-
-      {/* Bytes streamed — climbs as data flows. */}
-      <path className="chart-line chart-line--bytes" d={bytesPath} />
-
-      {/* End-point dot for bytes — head of the stream */}
-      <circle
-        className="chart-dot chart-dot--bytes"
-        cx={x(lastPoint.ms)}
-        cy={y(lastPoint.bytesIn)}
-        r="3"
-      />
-
-      {/* Plot border */}
-      <rect
-        className="chart-frame"
-        x={PAD.left}
-        y={PAD.top}
-        width={W - PAD.left - PAD.right}
-        height={H - PAD.top - PAD.bottom}
-      />
-    </svg>
+        <YAxis
+          domain={[0, "auto"]}
+          tickLine={false}
+          axisLine={false}
+          tickMargin={8}
+          tick={{ fill: "var(--ink-faint)", fontSize: 11 }}
+          tickFormatter={(v: number) => `${v.toFixed(0)} MB`}
+          width={52}
+        />
+        <Tooltip
+          contentStyle={{
+            background: "var(--bg-card)",
+            border: "1px solid var(--line)",
+            borderRadius: 4,
+            color: "var(--ink)",
+            fontFamily: "var(--mono)",
+            fontSize: 12,
+          }}
+          labelFormatter={(label) => `${label}s`}
+          formatter={(value, name) => [
+            `${value} MB`,
+            name === "heapUsed" ? "Heap Used" : "Bytes Streamed",
+          ]}
+          itemStyle={{ color: "var(--ink)" }}
+        />
+        <Legend
+          verticalAlign="bottom"
+          iconType="plainline"
+          wrapperStyle={{ fontSize: 11, color: "var(--ink-mute)" }}
+          formatter={(value: string) =>
+            value === "heapUsed" ? "Heap Used" : "Bytes Streamed"
+          }
+        />
+        <Line
+          dataKey="heapUsed"
+          type="monotone"
+          stroke="#5dd5ff"
+          strokeWidth={2}
+          dot={false}
+          isAnimationActive={false}
+        />
+        <Line
+          dataKey="bytesIn"
+          type="monotone"
+          stroke="#f5a524"
+          strokeWidth={2}
+          dot={false}
+          isAnimationActive={false}
+        />
+      </LineChart>
+    </div>
   );
 }

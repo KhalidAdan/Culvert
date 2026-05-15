@@ -209,7 +209,10 @@ export default function Index() {
 
     (async () => {
       try {
-        const res = await fetch(`/api/peek?package=${encodeURIComponent(packageName)}`, { signal: ac.signal });
+        const res = await fetch(
+          `/api/peek?package=${encodeURIComponent(packageName)}`,
+          { signal: ac.signal },
+        );
         if (!res.ok || !res.body) {
           throw new Error(`server returned ${res.status}`);
         }
@@ -340,28 +343,8 @@ export default function Index() {
           <div className="chart-sub">
             heap sampled every 100ms · bytes counted via <code>tap()</code>
           </div>
-          <div className="legend">
-            <div className="legend-item">
-              <div
-                className="legend-swatch"
-                style={{ background: "var(--bytes)" }}
-              />
-              bytes streamed
-            </div>
-            <div className="legend-item">
-              <div
-                className="legend-swatch"
-                style={{ background: "var(--heap)" }}
-              />
-              heap delta
-            </div>
-          </div>
         </div>
-        <MemoryChart
-          samples={state.samples}
-          baselineHeap={state.baselineHeap}
-          durationMs={state.durationMs}
-        />
+        <MemoryChart samples={state.samples} durationMs={state.durationMs} />
       </section>
 
       {state.error && (

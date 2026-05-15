@@ -1,6 +1,6 @@
 {
   "name": "culvert",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "",
   "type": "module",
@@ -10,7 +10,8 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "build:all": "npm run build -ws"
+    "build:all": "npm run build -ws",
+    "ex:tar-peek-dev": "cd apps/examples/tar-peek/ && npm run dev"
   },
   "devDependencies": {
     "typescript": "^5.0.0",
