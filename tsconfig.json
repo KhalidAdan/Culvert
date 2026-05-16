@@ -3,7 +3,6 @@
   "references": [
     { "path": "packages/crc32" },
     { "path": "packages/stream" },
-    { "path": "packages/internal/deflate" },
     { "path": "packages/zip" },
     { "path": "packages/gzip" }
   ]

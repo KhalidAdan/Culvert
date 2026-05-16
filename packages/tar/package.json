@@ -1,6 +1,6 @@
 {
   "name": "@culvert/tar",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Streaming tar reader and writer. Constant memory. ustar + PAX. Strict-by-default path validation.",
   "repository": {
     "type": "git",

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { gzipWith, gunzipWith } from "./index.js";
-import { deflateRaw, inflateRaw } from "@culvert/internal-deflate";
+import { deflateRaw, inflateRaw } from "./deflate.js";
 import { pipe, collectBytes, from } from "@culvert/stream";
 import type { Transform } from "@culvert/stream";
 

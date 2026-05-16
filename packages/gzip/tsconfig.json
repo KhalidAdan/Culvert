@@ -22,8 +22,7 @@
     "types": ["vitest/globals"],
     "paths": {
       "@culvert/stream": ["../stream/dist/index.d.ts"],
-      "@culvert/crc32": ["../crc32/dist/index.d.ts"],
-      "@culvert/internal-deflate": ["../internal/deflate/dist/index.d.ts"]
+      "@culvert/crc32": ["../crc32/dist/index.d.ts"]
     }
   },
   "include": ["src/**/*"],

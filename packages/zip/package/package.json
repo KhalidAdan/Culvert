@@ -1,7 +1,15 @@
 {
-  "name": "@culvert/gzip",
-  "version": "0.1.0",
-  "description": "Streaming gzip compression and decompression. Platform-native DEFLATE. CRC-32 verified. Concatenated member support.",
+  "name": "@culvert/zip",
+  "version": "0.1.2",
+  "description": "Streaming ZIP writer and reader. Constant memory. Predictable backpressure. Works in Node and the browser.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KhalidAdan/culvert.git"
+  },
+  "bugs": {
+    "url": "https://github.com/KhalidAdan/culvert/issues"
+  },
+  "homepage": "#",
   "type": "module",
   "main": "dist/index",
   "types": "dist/index.d.ts",
@@ -27,8 +35,18 @@
   },
   "dependencies": {
     "@culvert/stream": "*",
-    "@culvert/crc32": "*"
+    "@culvert/crc32": "*",
+    "@culvert/internal-deflate": "*"
   },
+  "keywords": [
+    "zip",
+    "archive",
+    "streaming",
+    "zip64",
+    "compression",
+    "deflate",
+    "cbz"
+  ],
   "engines": {
     "node": ">=18"
   },

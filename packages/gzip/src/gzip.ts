@@ -1,5 +1,5 @@
 import type { Transform, Source } from "@culvert/stream";
-import { deflateRaw } from "@culvert/internal-deflate";
+import { deflateRaw } from "./deflate.js";
 import { CRC32 } from "@culvert/crc32";
 import { buildGzipHeader, buildGzipFooter } from "./header.js";
 import { GzipAbortError } from "./errors.js";
