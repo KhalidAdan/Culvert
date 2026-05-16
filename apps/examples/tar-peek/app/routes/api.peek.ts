@@ -1,3 +1,4 @@
+import { gunzip } from "@culvert/gzip";
 import { fromReadableStream, pipe, tap } from "@culvert/stream";
 import { readTarEntries } from "@culvert/tar";
 import type { PeekEvent } from "~/lib/events";
@@ -13,13 +14,9 @@ import type { Route } from "./+types/api.peek";
  *
  * The pipeline:
  *
- *   fetch tarball  →  DecompressionStream("gzip")  →  fromReadableStream
- *                                                          │
- *                            tap(chunk → bytesIn += len)  ─┘
- *                                          │
- *                                  readTarEntries
- *                                          │
- *                              for await (entry) emit NDJSON
+ *   fetch tarball  →  fromReadableStream  →  gunzip  →  tap  →  readTarEntries
+ *                                                             │
+ *                                              for await (entry) emit NDJSON
  *
  * No file body is ever read — moving to the next entry auto-skips.
  * Memory is sampled out-of-band on a 100ms timer using
@@ -27,16 +24,6 @@ import type { Route } from "./+types/api.peek";
  */
 
 const SAMPLE_INTERVAL_MS = 100;
-
-async function* fetchGunzip(url: string, signal?: AbortSignal) {
-  const res = await fetch(url, { signal });
-  if (!res.ok || !res.body) {
-    throw new Error(`tarball fetch ${res.status} ${res.statusText}`);
-  }
-  yield* fromReadableStream(
-    res.body.pipeThrough(new DecompressionStream("gzip")),
-  );
-}
 
 export async function loader({ request }: Route.LoaderArgs) {
   const stream = new ReadableStream<Uint8Array>({
@@ -97,13 +84,19 @@ export async function loader({ request }: Route.LoaderArgs) {
         );
         emit({ t: "start", package: packageName, version, tarballUrl });
 
-        // 2) Build the culvert pipeline. The entire stream — gunzip,
-        //    throughput tap, tar header parsing, and NDJSON emission —
-        //    is one pipe with a sink that drives consumption. Back-
-        //    pressure propagates all the way back to the fetch, so we
-        //    never buffer more than a chunk in flight.
+        // 2) Fetch the tarball and build the culvert pipeline.
+        //    The entire stream — gunzip, throughput tap, tar header
+        //    parsing, and NDJSON emission — is one pipe with a sink
+        //    that drives consumption. Back-pressure propagates all
+        //    the way back to the fetch, so we never buffer more than
+        //    a chunk in flight.
+        const res = await fetch(tarballUrl, { signal: request.signal });
+        if (!res.ok || !res.body) {
+          throw new Error(`tarball fetch ${res.status} ${res.statusText}`);
+        }
         await pipe(
-          fetchGunzip(tarballUrl, request.signal),
+          fromReadableStream(res.body),
+          gunzip({ signal: request.signal }),
           tap((chunk: Uint8Array) => {
             bytesIn += chunk.byteLength;
           }),

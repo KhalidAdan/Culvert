@@ -11,6 +11,7 @@
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
+    "@culvert/gzip": "*",
     "@culvert/stream": "*",
     "@culvert/tar": "*",
     "@fontsource-variable/inter": "^5.2.8",

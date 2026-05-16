@@ -25,13 +25,9 @@ doesn't.
 ## How it works
 
 ```
-fetch(tarball)  →  DecompressionStream("gzip")  →  fromReadableStream
-                                                          │
-                            tap(chunk → bytesIn += len)   ┘
-                                          │
-                                  readTarEntries
-                                          │
-                              for await (entry) emit NDJSON
+fetch(tarball)  →  fromReadableStream  →  gunzip()  →  tap  →  readTarEntries
+                                                                    │
+                                              for await (entry) emit NDJSON
 ```
 
 The server (a React Router resource route at `/api/peek`) holds open a single
