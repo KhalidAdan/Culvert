@@ -116,9 +116,10 @@ await pipe(
 ```
 stream
 ├── crc32    (leaf — no culvert deps)
-├── zip      (stream + crc32, implementing)
-├── gzip     (stream, planned)
-└── tar      (stream, planned)
+├── zip      (stream + crc32)
+├── tar      (stream)
+├── gzip     (stream + crc32)
+└── archive  (stream + zip + tar — not yet)
 ```
 
 MIT

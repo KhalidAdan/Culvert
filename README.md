@@ -17,6 +17,7 @@ If you understand that line, you understand Culvert.
 | [`@culvert/stream`](./packages/stream) | Source/Transform/Sink + `pipe()` + 8 operators + `channel()`             |
 | [`@culvert/zip`](./packages/zip)       | Streaming ZIP writer + forward reader + random-access reader with ZIP64  |
 | [`@culvert/tar`](./packages/tar)       | Streaming tar reader and writer — ustar + PAX, strict path policy      |
+| [`@culvert/gzip`](./packages/gzip)     | Streaming gzip compression and decompression — platform DEFLATE, CRC-32 verified |
 | [`@culvert/crc32`](./packages/crc32)   | IEEE 802.3 CRC-32 — streaming-native, zero dependencies                   |
 
 ## Design bet
@@ -39,7 +40,7 @@ stream
 ├── crc32          (leaf — no culvert deps)
 ├── zip            (stream + crc32)
 ├── tar            (stream)
-├── gzip           (stream — not yet)
+├── gzip           (stream + crc32)
 └── archive        (stream + zip + tar — not yet)
 ```
 
@@ -47,9 +48,9 @@ This graph stays clean and acyclic. If it doesn't, we've lost the plot.
 
 ## Status
 
-**v1.5 — shipped.** Stream, crc32, zip, and tar are in.
+**v2 — shipped.** Stream, crc32, zip, tar, and gzip are in.
 
-**Next:** `@culvert/gzip`.
+**Next:** `@culvert/csv`.
 
 ## License
 

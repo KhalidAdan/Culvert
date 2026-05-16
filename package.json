@@ -5,7 +5,8 @@
   "description": "",
   "type": "module",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "packages/internal/*"
   ],
   "scripts": {
     "test": "vitest run",
